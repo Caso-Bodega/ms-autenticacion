@@ -36,6 +36,11 @@ app:
     # el valor por defecto es solo para desarrollo local y no debe usarse en un ambiente real.
     secret: ${JWT_SECRET:cambiar-esta-clave-secreta-por-una-de-al-menos-32-caracteres}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+  usuarios-iniciales:
+    # Contrasenas de los usuarios de demostracion "operario" y "tienda1" (se crean al arrancar si no existen).
+    # En Docker Swarm llegan como secretos; los valores por defecto son solo para desarrollo local.
+    operario-password: ${OPERARIO_PASSWORD:Operario.2026}
+    comercio-password: ${COMERCIO_PASSWORD:Tienda1.2026}
 
 management:
   endpoints:
