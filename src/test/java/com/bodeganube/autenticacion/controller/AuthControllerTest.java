@@ -30,7 +30,7 @@ class AuthControllerTest {
     void loginCorrectoDevuelve200ConToken() throws Exception {
         when(authService.login(any(LoginRequest.class))).thenReturn(new LoginResponse("token-de-prueba"));
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"operario1\",\"password\":\"clave-segura-123\"}"))
                 .andExpect(status().isOk())
@@ -42,7 +42,7 @@ class AuthControllerTest {
     void loginIncorrectoDevuelve401() throws Exception {
         when(authService.login(any(LoginRequest.class))).thenThrow(new CredencialesInvalidasException());
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"operario1\",\"password\":\"otra-clave\"}"))
                 .andExpect(status().isUnauthorized())
@@ -51,7 +51,7 @@ class AuthControllerTest {
 
     @Test
     void loginSinContrasenaDevuelve400() throws Exception {
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"operario1\"}"))
                 .andExpect(status().isBadRequest())
