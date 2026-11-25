@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
  * El token que devuelve lo valida el Spring Cloud Gateway antes de enrutar cada peticion.
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final AuthService authService;
