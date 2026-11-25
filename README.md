@@ -50,19 +50,19 @@ Base: `http://localhost:8081` (o `http://localhost:8080` a través de ms-gateway
 
 | Método | Ruta | Qué hace | Respuestas |
 |---|---|---|---|
-| POST | `/api/auth/login` | Valida credenciales y devuelve el JWT | 200, 400, 401 |
-| GET | `/api/auth/usuarios` | Lista usuarios | 200 |
-| GET | `/api/auth/usuarios/{id}` | Obtiene un usuario | 200, 404 |
-| POST | `/api/auth/usuarios` | Crea un usuario | 201 con `Location`, 400, 409 si el username existe |
-| PUT | `/api/auth/usuarios/{id}` | Cambia rol, comercio y, opcionalmente, la contraseña | 200, 400, 404, 409 |
-| DELETE | `/api/auth/usuarios/{id}` | Elimina un usuario | 204, 404 |
+| POST | `/api/v1/auth/login` | Valida credenciales y devuelve el JWT | 200, 400, 401 |
+| GET | `/api/v1/usuarios` | Lista usuarios | 200 |
+| GET | `/api/v1/usuarios/{id}` | Obtiene un usuario | 200, 404 |
+| POST | `/api/v1/usuarios` | Crea un usuario | 201 con `Location`, 400, 409 si el username existe |
+| PUT | `/api/v1/usuarios/{id}` | Cambia rol, comercio y, opcionalmente, la contraseña | 200, 400, 404, 409 |
+| DELETE | `/api/v1/usuarios/{id}` | Elimina un usuario | 204, 404 |
 
 Crear un usuario y luego iniciar sesión:
 ```json
-POST /api/auth/usuarios
+POST /api/v1/usuarios
 { "username": "tienda-sur", "password": "clave-segura-123", "rol": "COMERCIO", "comercioId": "comercio-123" }
 
-POST /api/auth/login
+POST /api/v1/auth/login
 { "username": "tienda-sur", "password": "clave-segura-123" }
 → { "token": "eyJhbGciOiJIUzM4NCJ9...", "tokenType": "Bearer" }
 ```
@@ -75,7 +75,7 @@ Todas las respuestas de error tienen el mismo formato:
   "status": 401,
   "error": "Unauthorized",
   "mensaje": "Usuario o contrasena incorrectos",
-  "ruta": "/api/auth/login"
+  "ruta": "/api/v1/auth/login"
 }
 ```
 
