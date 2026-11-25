@@ -46,7 +46,7 @@ Tabla `usuarios` (entidad `Usuario`). Hibernate la crea al iniciar (`ddl-auto: u
 | comercio_id | varchar | obligatorio si el rol es `COMERCIO`; nulo para `OPERARIO` |
 
 ## Endpoints
-Base: `http://localhost:8081` (o `http://localhost:8080` a través de ms-gateway).
+Base: `http://localhost:8081`. A través de ms-gateway (`http://localhost:8080`) el login es público y el CRUD de usuarios pide el JWT de un `OPERARIO`.
 
 | Método | Ruta | Qué hace | Respuestas |
 |---|---|---|---|
@@ -79,6 +79,17 @@ Todas las respuestas de error tienen el mismo formato:
 }
 ```
 
+## Usuarios iniciales
+Al arrancar se crean, solo si no existen, dos usuarios de demostración (`UsuariosIniciales`). Sin ellos nadie
+podría hacer el primer login, porque el gateway exige JWT para toda la API:
+
+| Usuario | Rol | comercioId | Contraseña (variable) |
+|---|---|---|---|
+| `operario` | `OPERARIO` | — | `OPERARIO_PASSWORD` (por defecto `Operario.2026`) |
+| `tienda1` | `COMERCIO` | `comercio-123` | `COMERCIO_PASSWORD` (por defecto `Tienda1.2026`) |
+
+En el clúster las contraseñas vienen de secretos de Docker Swarm.
+
 ## Levantar el servicio desde cero
 
 ### 1. Requisitos
@@ -88,7 +99,7 @@ Todas las respuestas de error tienen el mismo formato:
 
 ### 2. Clonar el repositorio
 ```bash
-git clone https://github.com/oLUCX/ms-autenticacion.git
+git clone https://github.com/Caso-Bodega/ms-autenticacion.git
 cd ms-autenticacion
 ```
 
@@ -136,18 +147,55 @@ Todo tiene un valor por defecto para desarrollo local y se puede cambiar con var
 | `DB_PASSWORD` | `postgres` |
 | `JWT_SECRET` | clave de desarrollo (mínimo 32 caracteres; en un ambiente real se debe cambiar) |
 | `JWT_EXPIRATION_MS` | `3600000` (1 hora) |
+| `OPERARIO_PASSWORD` | `Operario.2026` |
+| `COMERCIO_PASSWORD` | `Tienda1.2026` |
 
 ## Pruebas automatizadas
-`.\mvnw.cmd test` corre 16 pruebas que no necesitan base de datos:
+`.\mvnw.cmd test` corre 18 pruebas que no necesitan base de datos:
 - `AuthServiceTest` y `UsuarioServiceTest` (JUnit 5 + Mockito, con BCrypt real): login, hash de la
   contraseña, username repetido y reglas del rol `COMERCIO`.
 - `AuthControllerTest` y `UsuarioControllerTest` (MockMvc): 200, 201, 400, 401, 404 y que la contraseña
   nunca aparezca en la respuesta.
+- `UsuariosInicialesTest`: crea los usuarios de demostración con la contraseña cifrada y no los duplica.
+
+## Docker
+La imagen se construye con el `Dockerfile` de la raíz, en dos etapas:
+
+| Etapa | Imagen base | Qué hace |
+|---|---|---|
+| build | `eclipse-temurin:17-jdk-alpine` | Baja las dependencias (capa que se reutiliza mientras no cambie `pom.xml`), compila y separa el `.jar` en capas |
+| final | `eclipse-temurin:17-jre-alpine` | Solo el JRE y la aplicación en 4 capas, ejecutada por el usuario sin privilegios `bodega` |
+
+Buenas prácticas aplicadas: imagen final de unos 110 MB sin JDK ni código fuente, `.dockerignore` para que el
+contexto de build sea chico, usuario no root, `HEALTHCHECK` contra `/actuator/health/liveness`, apagado
+ordenado (`server.shutdown: graceful`) y la JVM ajustada al límite de memoria del contenedor
+(`-XX:MaxRAMPercentage`).
+
+```bash
+docker build -t ms-autenticacion .
+docker run -p 8081:8081 -e DB_URL=jdbc:postgresql://host.docker.internal:5432/bodeganube_auth ms-autenticacion
+```
+Para levantar el sistema completo (5 microservicios + PostgreSQL) se usa `docker compose up -d --build` en
+[bodeganube-infra](https://github.com/Caso-Bodega/bodeganube-infra). En Docker Swarm las contraseñas llegan como
+secretos en `/run/secrets` y Spring las lee con `spring.config.import=optional:configtree:/run/secrets/`.
+
+## CI/CD (GitHub Actions)
+Pipeline en `.github/workflows/ci-cd.yml`:
+
+| Evento | Etapas |
+|---|---|
+| Pull request a `develop` o `main` | **1. Build y test**: `./mvnw verify` con JDK 17; el reporte de pruebas queda como artefacto |
+| Push a `develop` | 1 + **2. Imagen**: publica `ghcr.io/caso-bodega/ms-autenticacion:develop` en GitHub Container Registry |
+| Push a `main` (merge del PR) | 1 + 2 (etiquetas `latest` y `sha-<commit>`) + **3. Despliegue**: `docker service update` en el clúster Swarm de AWS (rolling update con rollback automático) y verificación de `http://<manager>:8080/estado/ms-autenticacion` |
+
+La etiqueta `sha-<commit>` dice exactamente qué commit corre en el clúster (trazabilidad). La etapa 3 usa los
+secretos de la organización `SWARM_HOST` y `SWARM_SSH_KEY`; si no existen, se omite con una advertencia.
 
 ## Ramas
 `main` tiene la versión entregada, `develop` integra el trabajo en curso y cada cambio entra desde una
 rama `feature/...` con un Pull Request hacia `develop`.
 
 ## Próximos pasos
-- Que ms-gateway valide la firma y la expiración de este JWT en un `GlobalFilter` (RBAC por rol).
-- Proteger el CRUD de usuarios para que solo lo use un administrador.
+- Agregar un rol `ADMIN` para el CRUD de usuarios (hoy, a través del gateway, lo usa el `OPERARIO`).
+- Firmar los JWT con RSA (RS256) y publicar la llave pública, para que Amazon API Gateway también pueda
+  validarlos con un *JWT authorizer*.
