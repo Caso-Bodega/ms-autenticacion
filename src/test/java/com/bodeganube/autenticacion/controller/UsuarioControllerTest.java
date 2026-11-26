@@ -37,19 +37,19 @@ class UsuarioControllerTest {
         when(usuarioService.crear(any(UsuarioRequest.class)))
                 .thenReturn(new UsuarioResponse(1L, "tienda-sur", Rol.COMERCIO, "comercio-123"));
 
-        mockMvc.perform(post("/api/auth/usuarios")
+        mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"tienda-sur\",\"password\":\"clave-segura-123\","
                                 + "\"rol\":\"COMERCIO\",\"comercioId\":\"comercio-123\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", endsWith("/api/auth/usuarios/1")))
+                .andExpect(header().string("Location", endsWith("/api/v1/usuarios/1")))
                 .andExpect(jsonPath("$.username").value("tienda-sur"))
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
     void crearUsuarioConContrasenaCortaDevuelve400() throws Exception {
-        mockMvc.perform(post("/api/auth/usuarios")
+        mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"tienda-sur\",\"password\":\"123\",\"rol\":\"COMERCIO\"}"))
                 .andExpect(status().isBadRequest())
@@ -58,7 +58,7 @@ class UsuarioControllerTest {
 
     @Test
     void crearUsuarioConRolDesconocidoDevuelve400() throws Exception {
-        mockMvc.perform(post("/api/auth/usuarios")
+        mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"tienda-sur\",\"password\":\"clave-segura-123\",\"rol\":\"ADMIN\"}"))
                 .andExpect(status().isBadRequest());
@@ -68,14 +68,14 @@ class UsuarioControllerTest {
     void obtenerUsuarioInexistenteDevuelve404() throws Exception {
         when(usuarioService.obtener(99L)).thenThrow(new RecursoNoEncontradoException("No existe el usuario 99"));
 
-        mockMvc.perform(get("/api/auth/usuarios/99"))
+        mockMvc.perform(get("/api/v1/usuarios/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("No existe el usuario 99"));
     }
 
     @Test
     void eliminarDevuelve204() throws Exception {
-        mockMvc.perform(delete("/api/auth/usuarios/1"))
+        mockMvc.perform(delete("/api/v1/usuarios/1"))
                 .andExpect(status().isNoContent());
 
         verify(usuarioService).eliminar(1L);

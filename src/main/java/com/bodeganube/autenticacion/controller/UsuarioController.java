@@ -21,11 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
- * CRUD de usuarios (operarios de bodega y comercios). Va bajo /api/auth para que el gateway lo
- * enrute con la misma regla que el login.
+ * CRUD de usuarios (operarios de bodega y comercios). Va bajo /api/v1/usuarios (version 1 de la API); el gateway lo
+ * enruta a este microservicio igual que el login.
  */
 @RestController
-@RequestMapping("/api/auth/usuarios")
+@RequestMapping("/api/v1/usuarios")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
